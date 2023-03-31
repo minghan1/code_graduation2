@@ -174,6 +174,74 @@ def deal3():
     plt.xlabel("dram_bw_2")
     plt.show()
 
+def deal4():
+
+    N = 65536
+    buffer_num = 5
+    prefetch_num = 4
+    dram_bw_2 = [x for x in range(1200, 2500, 160)]
+    dram_bw_1 = 1600
+    mi_size = N * 60 / 1000
+    output_buffer_size = [x * mi_size for x in [0.1, 0.6, 1, 3, 8, 15]]
+
+    data = pd.read_csv(param_default_path)
+    data["val"][0] = N
+    data["val"][5] = buffer_num
+    data["val"][7] = prefetch_num
+    data["val"][6] = dram_bw_1
+    color = ['b.-', 'g.-', 'r.-', 'c.-', 'm.-', 'y.-', 'k.-']
+    color_index = 0
+    label = []
+    plt.subplot(121)
+    for out_size in tqdm(output_buffer_size):
+        data["val"][4] = out_size
+        y = []
+        for d in dram_bw_2:
+            data["val"][8] = d
+            # print(d)
+            # data.to_csv(param_default_path)
+            with open(param_default_path, "w") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["param", "val"])
+                for i in range(data.shape[0]):
+                    writer.writerow([data["param"][i], data["val"][i]])
+            cycles = main.run(param_default_path, config_default_path)
+            y.append(cycles[0])
+        plt.plot(dram_bw_2, y, color[color_index])
+        strr = "outbuffersize " + str(out_size) + "k"
+        label.append(strr)
+        color_index = (color_index + 1) % len(color)
+    plt.xlabel("dram_bw")
+    plt.ylabel("total_cycles")
+    # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
+    plt.legend(label)
+
+    dram_bw_2 = [x for x in range(1200, 2500, 160)]
+    plt.subplot(122)
+    for out_size in tqdm(output_buffer_size):
+        data["val"][4] = out_size
+        y = []
+        for d in dram_bw_2:
+            data["val"][8] = d
+            # print(d)
+            # data.to_csv(param_default_path)
+            with open(param_default_path, "w") as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(["param", "val"])
+                for i in range(data.shape[0]):
+                    writer.writerow([data["param"][i], data["val"][i]])
+            cycles = main.run(param_default_path, config_default_path)
+            y.append(cycles[0] - cycles[5])
+        plt.plot(dram_bw_2, y, color[color_index])
+        strr = "outbuffersize " + str(out_size) + "k"
+        label.append(strr)
+        color_index = (color_index + 1) % len(color)
+    plt.xlabel("dram_bw")
+    plt.ylabel("total_cycles")
+    # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
+    plt.legend(label)
+    plt.show()
+
 
 
 if __name__ == "__main__":

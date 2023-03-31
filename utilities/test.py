@@ -216,8 +216,8 @@ def deal4():
     buffer_num = np.array([2, 5, 9, 15])
     prefetch_num = np.array([[1],[2,4],[1,4,9],[1,5,9,15]])
 
-    dram_bw_2 = 500
-    dram_bw_1 = 800
+    dram_bw_2 = 2048
+    dram_bw_1 = 2048
     mi_size = N * 60 / 1000
     output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.7, 1, 3]]
     computer_latency = [x for x in [50,300,1000,3000,6000]]
@@ -287,11 +287,16 @@ def deal5():
     N = 65536
     buffer_num = 2
     prefetch_num = 1
-    dram_bw_1 = 800
-    dram_bw_2 = 500
+    dram_bw_1 = 2048
+    dram_bw_2 = 2048
     mi_size = N * 60 / 1000
-    output_buffer_size = 3932
+    output_buffer_size = 1200
     computer_latency = [x for x in [50,300,1000,3000,6000]]
+
+    com_lat_str = []
+    for u in computer_latency:
+        com_lat_str.append(str(u))
+
     parammm = param()
     data = pd.read_csv(param_default_path)
     data["val"][0] = N
@@ -299,7 +304,7 @@ def deal5():
     data["val"][7] = prefetch_num
     label = ["tot", "pre", "comp", "wr_wai", "to_wb", "fin"]
     color = ['b', 'g', 'r', 'c', 'm', 'y']
-    x = [x for x in range(6)]
+    x = np.arange(6)
     data["val"][6] = dram_bw_1
     data["val"][8] = dram_bw_2
     width = 1
@@ -316,6 +321,10 @@ def deal5():
         plt.legend(t, label)
     plt.xlabel("computer_latency")
     result_default_path_2 = os.path.join(result_default_path, "deal5.png")
+    x = np.arange(6)
+    for i in range(x.size):
+        x[i] = i * width * 7 + 6 * width
+    plt.xticks(x + width * 3,com_lat_str)
     plt.savefig(result_default_path_2)
     plt.show()
 
@@ -370,7 +379,7 @@ if __name__ == "__main__":
     # deal3()
 
     # 分析输入buffer computer_latency和带宽与cycles的关系
-    deal4()
+    # deal4()
     deal5()
 
 

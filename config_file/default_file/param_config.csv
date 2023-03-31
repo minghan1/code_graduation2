@@ -1,0 +1,10 @@
+param,val
+N,65536
+L,50
+I,60
+ISRAMSIZE,64
+OSRAMSIZE,1200
+buf_num,5
+dram_bw_1,1600
+prefetch_buf_num,4
+dram_bw_2,2100

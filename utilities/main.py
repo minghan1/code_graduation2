@@ -48,7 +48,7 @@ if __name__ == '__main__':
                   input_buf_num=f.buf_num, param_config=f)
     sim.run()
 
-def run(param_default_path,config_default_path):
+def run(param_default_path,config_default_path,param_custom):
     parser = argparse.ArgumentParser()
     parser.add_argument('-c1', metavar='parameter Config file', type=str,
                         default=param_default_path,
@@ -71,6 +71,14 @@ def run(param_default_path,config_default_path):
     f = pcd.ParamConfig()
     f.read_param_config_file(config_param)
     f.read_opt_config_file(config_opt)
+
+    f.polylen = param_custom.N
+    f.dram_bw_1 = param_custom.dram_bw_1
+    f.dram_bw_2 = param_custom.dram_bw_2
+    f.computer_latency = param_custom.computer_latency
+    f.buf_num = param_custom.buffer_num
+    f.prefetch_buf_num = param_custom.prefetch_num
+    f.Outsram_size = param_custom.out_buffer_size
 
     # 设置跨文件全剧变量opt_vector
     gol.__init(f.opt_vector, f.polylen)

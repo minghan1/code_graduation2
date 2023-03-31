@@ -4,10 +4,14 @@ import math
 
 class stream_creat:
     def __init__(self):
-        self.add_lat = 10
-        self.mult_lat = 20
-        self.ntt_lat = 30
+        self.add_lat = 0
+        self.mult_lat = 0
+        self.ntt_lat = 0
 
+    def set_params(self,add_lat,mult_lat,ntt_lat):
+        self.add_lat = add_lat
+        self.mult_lat = mult_lat
+        self.ntt_lat = ntt_lat
     #返回输入流周期数
     def add_creat(self, size, bw):
         return math.ceil(size * 1.0 / bw)

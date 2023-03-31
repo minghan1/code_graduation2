@@ -41,15 +41,17 @@ class simulator :
         self.pa = param_config
         self.total_cycles = 0
 
+
     # 整体运行框架
     def run(self):
-        # start_time = time.time()
+        start_time = time.time()
 
         self.optlen = self.pa.optlen
         self.opt1 = self.pa.opt1
         self.opt2 = self.pa.opt2
         self.optclass = self.pa.optclass
 
+        self.sc.set_params(self.pa.computer_latency,self.pa.computer_latency,self.pa.computer_latency)
         # 配置内存参数
         self.controller.set_params(input_buffer_num = self.input_buf_num,\
                                    input_buffer_size_bytes=self.in_buf_size_bytes, \
@@ -164,7 +166,8 @@ class simulator :
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
             lat1 = write_latency[0] + write_latency[1] - lat2
             self.write_to_writebuffer_cycles += lat1
-            self.computer_cycles += computer_latency_cycles + lat2
+            # self.computer_cycles += computer_latency_cycles + lat2
+            self.computer_cycles += computer_latency_cycles
             return start_cycles + computer_latency_cycles + write_latency[0] + write_latency[1]
 
         if optclass == "MUL":
@@ -183,7 +186,8 @@ class simulator :
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
             lat1 = write_latency[0] + write_latency[1] - lat2
             self.write_to_writebuffer_cycles += lat1
-            self.computer_cycles += computer_latency_cycles + lat2
+            # self.computer_cycles += computer_latency_cycles + lat2
+            self.computer_cycles += computer_latency_cycles
             return start_cycles + computer_latency_cycles + write_latency[0] + write_latency[1]
 
         if optclass == "NTT":
@@ -202,5 +206,6 @@ class simulator :
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
             lat1 = write_latency[0] + write_latency[1] - lat2
             self.write_to_writebuffer_cycles += lat1
-            self.computer_cycles += computer_latency_cycles + lat2
+            # self.computer_cycles += computer_latency_cycles + lat2
+            self.computer_cycles += computer_latency_cycles
             return start_cycles + computer_latency_cycles + write_latency[0] + write_latency[1]

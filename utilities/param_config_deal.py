@@ -20,6 +20,7 @@ class ParamConfig :
         self.dram_bw_1 = 0
         self.prefetch_buf_num = 1
         self.dram_bw_2 = 0
+        self.computer_latency = 0
 
         self.optlen = 0 #操作个数
         self.opt1 = [] #操作数1名称
@@ -120,6 +121,7 @@ class ParamConfig :
         self.dram_bw_1 = data["val"][6]
         self.prefetch_buf_num = data["val"][7]
         self.dram_bw_2 = data["val"][8]
+        self.computer_latency = data["val"][9]
 
         # print("polylen: ", self.polylen,"\n", \
         #       "deep_len: ", self.deep_len, "\n", \

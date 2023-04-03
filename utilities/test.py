@@ -216,8 +216,8 @@ def deal4():
     buffer_num = np.array([2, 5, 9, 15])
     prefetch_num = np.array([[1],[2,4],[1,4,9],[1,5,9,15]])
 
-    dram_bw_2 = 2048
-    dram_bw_1 = 2048
+    dram_bw_2 = 600
+    dram_bw_1 = 800
     mi_size = N * 60 / 1000
     output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.7, 1, 3]]
     computer_latency = [x for x in [50,300,1000,3000,6000]]
@@ -287,8 +287,8 @@ def deal5():
     N = 65536
     buffer_num = 2
     prefetch_num = 1
-    dram_bw_1 = 2048
-    dram_bw_2 = 2048
+    dram_bw_1 = 600
+    dram_bw_2 = 800
     mi_size = N * 60 / 1000
     output_buffer_size = 1200
     computer_latency = [x for x in [50,300,1000,3000,6000]]
@@ -379,7 +379,7 @@ if __name__ == "__main__":
     # deal3()
 
     # 分析输入buffer computer_latency和带宽与cycles的关系
-    # deal4()
+    deal4()
     deal5()
 
 

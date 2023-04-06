@@ -17,6 +17,7 @@ class controller:
         self.buffer_arr = []  # 记录每个输入buffer里面的操作数id
         self.surplus_buffer_num = Queue.Queue()  #空闲buffer队列
         self.now_exe_id = 0  #接下来 加速器PL核要从buffer中读取哪一个操作数
+        self.buffer_bw = 2048
 
         # 如果一个操作数的名字不在opt_sram_map.keys()中，那么该操作数一定在片上缓存
         # 如果在，并且对于的值为True，那么该操作数在片上缓存中
@@ -32,6 +33,7 @@ class controller:
         self.this_opt_size = 0#要写的操作数的大小
         self.this_opt_buffer_valid = False #当前这个要写的操作数是否已经指定buffer
         self.this_opt_buffer_index = 1
+        self.num = 0  #当前buffer被读走多少数据了
 
 
     def set_params(self, input_buffer_num = 0, input_buffer_size_bytes = 0,dram_bw_1 = 0):
@@ -62,7 +64,7 @@ class controller:
             # self.buffer_arr.append(self.opt_vector[j].id)
             self.buffer_arr[i] = self.opt_vector[j].id
             self.opt_sram_map[self.opt_vector[j].name] = self.surplus_buffer_num.get()
-            self.now_id += 1
+            # self.now_id += 1
             if (self.opt_vector[j].reused):
                 self.reused_que.appendleft(self.opt_vector[j].id)
             gol.reset_all_value(self.opt_vector)
@@ -220,13 +222,13 @@ class controller:
 
     # 获得下一个要读取的操作数
     def get_next_opt(self, now_id = 0):
-        j = now_id
-        if (self.now_id > gol.get_len()):
+        j = now_id + 1
+        if (j > gol.get_len()):
             return
         self.opt_vector = gol.get_all()
         # 找到下一个不在buffer中的操作数
         while (self.opt_vector[j - 1].name in self.opt_sram_map.keys()):
-            if (self.opt_sram_map[self.opt_vector[j- 1].name] == 0):
+            if (self.opt_sram_map[self.opt_vector[j - 1].name] == 0):
                 break
             j += 1
             if (j > len(self.opt_vector)):
@@ -332,6 +334,7 @@ class controller:
                 exit(0)
             this_opt_need_cycles = math.ceil((1.0 * self.this_opt_size - self.last_size) / self.dram_bw_1)
             total_cycles += this_opt_need_cycles
+            self.last_cycles = total_cycles
             self.complete_one_opt()
 
             # 获得下一个要读取的操作数
@@ -343,12 +346,25 @@ class controller:
                 exit(0)
             this_opt_need_cycles = math.ceil((1.0*self.this_opt_size - self.last_size) / self.dram_bw_1)
             total_cycles += this_opt_need_cycles
+            self.last_cycles = total_cycles
             self.complete_one_opt()
 
             # 获得下一个要读取的操作数
             self.get_next_opt(self.now_id)
         return total_cycles
 
+    def wait_buffer_one_opt(self,opt,total_cycles):
+        if not self.this_opt_buffer_valid:
+            print ("si wait buffer error!")
+            exit(0)
+        this_opt_need_cycles = math.ceil((1.0 * self.this_opt_size - self.last_size) / self.dram_bw_1)
+        total_cycles += this_opt_need_cycles
+        self.last_cycles = total_cycles
+        self.complete_one_opt()
+
+        # 获得下一个要读取的操作数
+        self.get_next_opt(self.now_id)
+        return this_opt_need_cycles
     #完成一个操作数从dram到buffer的写
     def complete_one_opt(self):
         self.opt_vector = gol.get_all()
@@ -382,3 +398,19 @@ class controller:
                 self.buffer_arr[buffer_index - 1] = 0
                 self.surplus_buffer_num.put(buffer_index)
             gol.reset_all_value(self.opt_vector)
+
+    #从now_id这个bufffer中获取buffer_bw个操element
+    #1,判断是否够取
+    #2，够，就直接取走
+    #3，不够就先等再取
+    def get_data(self):
+        cycles = 0
+        left_num = self.last_size - self.num
+        if(left_num > self.buffer_bw):
+            cycles += 1
+            self.num += self.buffer_bw
+        else:
+            need_cycles = math.ceil((self.buffer_bw - left_num) * 1.0 / self.dram_bw_1)
+            cycles += need_cycles + 1
+            self.num += self.buffer_bw
+        return  cycles

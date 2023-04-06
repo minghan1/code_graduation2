@@ -9,6 +9,8 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import sys
+
+import gol
 import main
 from tqdm import tqdm
 param_default_path = os.path.join('..','config_file', 'default_file', 'param_config.csv')
@@ -51,12 +53,12 @@ class param:
 def deal1():
 
     N = 65536
-    buffer_num = 5
-    prefetch_num = 4
-    dram_bw_2 = [x for x in range(600, 2500, 160)]
-    dram_bw_1 = 1600
+    buffer_num = 2
+    prefetch_num = 2
+    dram_bw_2 = [x for x in range(700, 2500, 160)]
+    dram_bw_1 = 1200
     mi_size = N * 60 / 1000
-    output_buffer_size = [x * mi_size for x in [0.1, 0.6, 1, 3, 8, 15]]
+    output_buffer_size = [x * mi_size for x in [0.1, 0.6, 1, 3, 8, 15,30]]
     computer_latency = 600
     parammm = param()
 
@@ -121,12 +123,12 @@ def deal1():
 #分析total cycles中的各个延迟组成与输出buffer大小的关系
 def deal2():
     N = 65536
-    buffer_num = 5
-    prefetch_num = 4
-    dram_bw_1 = 1600
+    buffer_num = 2
+    prefetch_num = 2
+    dram_bw_1 = 1200
     dram_bw_2 = 1000
     mi_size = N * 60 / 1000
-    output_buffer_size = [x * mi_size for x in [0.3, 1, 8,18,30]]
+    output_buffer_size = [x * mi_size for x in [0.6, 1, 3, 4, 5, 8, 10]]
     # for ii in output_buffer_size:
     #     print ii * 1000
     parammm = param()
@@ -134,12 +136,16 @@ def deal2():
     data["val"][0] = N
     data["val"][5] = buffer_num
     data["val"][7] = prefetch_num
-    label = ["tot", "pre", "comp", "wr_wai", "to_wb", "fin"]
-    color = ['b', 'g', 'r', 'c', 'm', 'y']
-    x = [x for x in range(6)]
+    label = ["tot", "mini", "pre", "comp", "re_stall", "wr_stall", "fin"]
+    color = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    x = np.arange(7)
     data["val"][6] = dram_bw_1
     data["val"][8] = dram_bw_2
     width = 1
+
+    com_lat_str = []
+    for u in output_buffer_size:
+        com_lat_str.append(str(u))
 
     yy = []
     i = 0
@@ -153,11 +159,16 @@ def deal2():
         #         writer.writerow([data["param"][i], data["val"][i]])
         cycles = main.run(param_default_path, config_default_path,parammm)
         yy = cycles
+        yy[1] = N * 60 * gol.get_optlen() / dram_bw_2 + yy[2]
         for m in range(len(x)):
-            x[m] = x[m] + width * 7
+            x[m] = x[m] + width * 8
         t = plt.bar(x = x, height = yy, width = width,color=color)
         plt.legend(t, label)
     plt.xlabel("out_buffer_size")
+    x = np.arange(len(output_buffer_size))
+    for i in range(x.size):
+        x[i] = i * width * 8 + 6 * width
+    plt.xticks(x + width * 3, com_lat_str)
     result_default_path_2 = os.path.join(result_default_path, "deal2.png")
     plt.savefig(result_default_path_2)
     plt.show()
@@ -165,10 +176,10 @@ def deal2():
 #分析total cycles中的各个延迟组成与输出buffer到dram带宽的关系
 def deal3():
     N = 65536
-    buffer_num = 5
-    prefetch_num = 4
-    dram_bw_1 = 1600
-    dram_bw_2 = [x for x in range(500, 2200, 160)]
+    buffer_num = 9
+    prefetch_num = 9
+    dram_bw_1 = 1200
+    dram_bw_2 = [x for x in range(300, 2200, 160)]
     output_buffer_size = 1200
     # for ii in output_buffer_size:
     #     print ii * 1000
@@ -179,12 +190,16 @@ def deal3():
     data["val"][0] = N
     data["val"][5] = buffer_num
     data["val"][7] = prefetch_num
-    label = ["tot", "pre", "comp", "wr_wai", "to_wb", "fin"]
-    color = ['b', 'g', 'r', 'c', 'm', 'y']
-    x = [x for x in range(6)]
+    label = ["tot", "mini", "pre", "comp", "re_stall", "wr_stall", "fin"]
+    color = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    x = np.arange(7)
     data["val"][6] = dram_bw_1
     data["val"][4] = output_buffer_size
     width = 1
+
+    com_lat_str = []
+    for u in dram_bw_2:
+        com_lat_str.append(str(u))
 
     yy = []
     i = 0
@@ -201,10 +216,14 @@ def deal3():
         # cycles = main.run(param_default_path, config_default_path)
         yy = cycles
         for m in range(len(x)):
-            x[m] = x[m] + width * 7
+            x[m] = x[m] + width * 8
         t = plt.bar(x=x, height=yy, width=width, color=color)
         plt.legend(t, label)
     plt.xlabel("dram_bw_2")
+    x = np.arange(len(dram_bw_2))
+    for i in range(x.size):
+        x[i] = i * width * 8 + 6 * width
+    plt.xticks(x + width * 3, com_lat_str)
     result_default_path_2 = os.path.join(result_default_path, "deal3.png")
     plt.savefig(result_default_path_2)
     plt.show()
@@ -214,13 +233,13 @@ def deal4():
 
     N = 65536
     buffer_num = np.array([2, 5, 9, 15])
-    prefetch_num = np.array([[1],[2,4],[1,4,9],[1,5,9,15]])
+    prefetch_num = np.array([[2],[2,4],[2,4,9],[2,5,9,15]])
 
-    dram_bw_2 = 600
-    dram_bw_1 = 800
+    dram_bw_2 = 1000
+    dram_bw_1 = 1200
     mi_size = N * 60 / 1000
     output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.7, 1, 3]]
-    computer_latency = [x for x in [50,300,1000,3000,6000]]
+    computer_latency = [x for x in [10,50,100,200,300]]
 
     parammm = param()
     data = pd.read_csv(param_default_path)
@@ -285,13 +304,13 @@ def deal4():
 #分析total cycles中的各个延迟组成与computer_latency大小的关系
 def deal5():
     N = 65536
-    buffer_num = 2
-    prefetch_num = 1
-    dram_bw_1 = 600
-    dram_bw_2 = 800
+    buffer_num = 9
+    prefetch_num = 9
+    dram_bw_1 = 1200
+    dram_bw_2 = 1000
     mi_size = N * 60 / 1000
-    output_buffer_size = 1200
-    computer_latency = [x for x in [50,300,1000,3000,6000]]
+    output_buffer_size = 120000
+    computer_latency = [x for x in [10,50,100,200,300]]
 
     com_lat_str = []
     for u in computer_latency:
@@ -302,9 +321,9 @@ def deal5():
     data["val"][0] = N
     data["val"][5] = buffer_num
     data["val"][7] = prefetch_num
-    label = ["tot", "pre", "comp", "wr_wai", "to_wb", "fin"]
-    color = ['b', 'g', 'r', 'c', 'm', 'y']
-    x = np.arange(6)
+    label = ["tot", "mini","pre", "comp", "re_stall", "wr_stall", "fin"]
+    color = ['b', 'g', 'r', 'c', 'm', 'y','k']
+    x = np.arange(7)
     data["val"][6] = dram_bw_1
     data["val"][8] = dram_bw_2
     width = 1
@@ -314,7 +333,7 @@ def deal5():
         parammm.set_params(N,buffer_num,dram_bw_1,dram_bw_2,prefetch_num,output_buffer_size,conputer_latency=com_lat)
         cycles = main.run(param_default_path, config_default_path,parammm)
         yy = cycles
-        print ("set_lat",com_lat, "com_sum_lat",cycles[2])
+        # print ("set_lat",com_lat, "com_sum_lat",cycles[2])
         for m in range(len(x)):
             x[m] = x[m] + width * 7
         t = plt.bar(x = x, height = yy, width = width,color=color)
@@ -329,58 +348,239 @@ def deal5():
     plt.show()
 
 
-#分析dram_bw_1 buffer_num 两个变量与totalcycles的关系
 def deal6():
-
     N = 65536
-    buffer_num = 5
-    prefetch_num = 4
-    dram_bw_1 = [x for x in range(500, 2500, 160)]
-    dram_bw_2 = 1600
-    mi_size = N * 60 / 1000
-    output_buffer_size = 3000
+    buffer_num = np.array([2, 5, 9, 15])
+    prefetch_num = np.array([[2], [2, 4], [2, 4, 9], [2, 5, 9, 15]])
 
+    dram_bw_2 = [x for x in range(600, 1500, 160)]
+    dram_bw_1 = 1200
+    mi_size = N * 60 / 1000
+    output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.8,1,3,8]]
+    computer_latency = 50
+
+    parammm = param()
     data = pd.read_csv(param_default_path)
     data["val"][0] = N
-    data["val"][5] = buffer_num
-    data["val"][7] = prefetch_num
+    # data["val"][5] = buffer_num
+    # data["val"][7] = prefetch_num
     data["val"][6] = dram_bw_1
+    color = ['b.-', 'g.-', 'r.-', 'c.-', 'm.-', 'y.-', 'k.-']
+    ii = 1
+    fi = plt.figure(1)
+    label = []
+    for out_size in output_buffer_size:
+        strr = "outbuffersize " + str(out_size) + "k"
+        label.append(strr)
+    for buf_num in tqdm(buffer_num):
+        data["val"][5] = buf_num
+        j = 1
+        for pre_num in tqdm(prefetch_num[ii - 1]):
+            data["val"][7] = pre_num
+            color_index = 0
+            # print ("buf_num ", buf_num, "pre_num", pre_num, (ii - 1) * 4 + j)
+            plt.subplot(4, 4, (ii - 1) * 4 + j)
+            for out_size in output_buffer_size:
+                data["val"][4] = out_size
+                y = []
+
+                for dram_2 in dram_bw_2:
+                    start_time = time.time()
+                    parammm.set_params(N, buf_num, dram_bw_1, dram_2, pre_num, out_size, computer_latency)
+                    # with open(param_default_path, "w") as csvfile:
+                    #     writer = csv.writer(csvfile)
+                    #     writer.writerow(["param", "val"])
+                    #     for i in range(data.shape[0]):
+                    #         writer.writerow([data["param"][i], data["val"][i]])
+                    cycles = main.run(param_default_path, config_default_path, parammm)
+                    y.append(cycles[0] - N * 60 * gol.get_optlen() / dram_2 + cycles[2])
+                    end_time = time.time()
+                    # print("once_time is ", end_time - start_time)
+                plt.plot(dram_bw_2, y, color[color_index])
+                if (j == 1):
+                    strr = "buffer_num = " + str(buf_num)
+                    plt.ylabel(strr, color='r')
+                if (ii == 4):
+                    strr = "prefetch_num = " + str(pre_num)
+                    plt.xlabel(strr, color='r')
+                color_index = (color_index + 1) % len(color)
+
+            j += 1
+        ii += 1
+    fi.legend(label)
+    # plt.xlabel("computer_latency")
+    fi.suptitle("x_axis is dram_bw_2", fontsize=20)
+    result_default_path_2 = os.path.join(result_default_path, "deal6.png")
+    plt.savefig(result_default_path_2)
+    plt.show()
+
+def deal7():
+
+    N = 65536
+    buffer_num = [x for x in [2,5,8,13,18,23]]
+    prefetch_num = 2
+    dram_bw_2 = [400,700,1200,1500]
+    dram_bw_1 = 1200
+    mi_size = N * 60 / 1000
+    output_buffer_size = mi_size * 1
+    computer_latency = 600
+    parammm = param()
+
+    data = pd.read_csv(param_default_path)
+
     color = ['b.-', 'g.-', 'r.-', 'c.-', 'm.-', 'y.-', 'k.-']
     color_index = 0
     label = []
     plt.subplot(121)
-    for buf_num in tqdm(buffer_num):
-        # data["val"][4] = buf_num
+    for d in tqdm(dram_bw_2):
         y = []
-        for d in dram_bw_1:
-            with open(param_default_path, "w") as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(["param", "val"])
-                for i in range(data.shape[0]):
-                    writer.writerow([data["param"][i], data["val"][i]])
-            cycles = main.run(param_default_path, config_default_path)
-            y.append(cycles[0])
-        plt.plot(dram_bw_2, y, color[color_index])
-        strr = "outbuffersize " + str(buf_num) + "k"
+        for buf_num in buffer_num:
+
+            parammm.set_params(N, buf_num, dram_bw_1, d, prefetch_num, output_buffer_size, computer_latency)
+            cycles = main.run(param_default_path, config_default_path, parammm)
+            # print(d)
+            # data.to_csv(param_default_path)
+            # with open(param_default_path, "w") as csvfile:
+            #     writer = csv.writer(csvfile)
+            #     writer.writerow(["param", "val"])
+            #     for i in range(data.shape[0]):
+            #         writer.writerow([data["param"][i], data["val"][i]])
+            # cycles = main.run(param_default_path, config_default_path)
+            y.append(cycles[0] - N * 60 * gol.get_optlen() / d + cycles[2])
+        plt.plot(buffer_num, y, color[color_index])
+        strr = "dram_bw_2 " + str(d)
         label.append(strr)
         color_index = (color_index + 1) % len(color)
-    plt.xlabel("dram_bw")
+    plt.xlabel("buf_num")
     plt.ylabel("total_cycles")
-    # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
     plt.legend(label)
+    result_default_path_2 = os.path.join(result_default_path, "deal7.png")
+    plt.savefig(result_default_path_2)
     plt.show()
 
+
+def deal8():
+    N = 65536
+    buffer_num = np.array([2, 5, 9, 15])
+    prefetch_num = np.array([[2], [2, 4], [2, 4, 9], [2, 5, 9, 15]])
+
+    dram_bw_2 = [x for x in range(600, 1500, 160)]
+    dram_bw_1 = 1200
+    mi_size = N * 60 / 1000
+    output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.8,1,3,8]]
+    computer_latency = 50
+
+    parammm = param()
+    data = pd.read_csv(param_default_path)
+    data["val"][0] = N
+    # data["val"][5] = buffer_num
+    # data["val"][7] = prefetch_num
+    data["val"][6] = dram_bw_1
+    color = ['b.-', 'g.-', 'r.-', 'c.-', 'm.-', 'y.-', 'k.-']
+    ii = 1
+    fi = plt.figure(1)
+    label = []
+    for out_size in output_buffer_size:
+        strr = "outbuffersize " + str(out_size) + "k"
+        label.append(strr)
+    for buf_num in tqdm(buffer_num):
+        data["val"][5] = buf_num
+        j = 1
+        for pre_num in tqdm(prefetch_num[ii - 1]):
+            data["val"][7] = pre_num
+            color_index = 0
+            # print ("buf_num ", buf_num, "pre_num", pre_num, (ii - 1) * 4 + j)
+            plt.subplot(4, 4, (ii - 1) * 4 + j)
+            for out_size in output_buffer_size:
+                data["val"][4] = out_size
+                y = []
+
+                for dram_2 in dram_bw_2:
+                    start_time = time.time()
+                    parammm.set_params(N, buf_num, dram_bw_1, dram_2, pre_num, out_size, computer_latency)
+                    # with open(param_default_path, "w") as csvfile:
+                    #     writer = csv.writer(csvfile)
+                    #     writer.writerow(["param", "val"])
+                    #     for i in range(data.shape[0]):
+                    #         writer.writerow([data["param"][i], data["val"][i]])
+                    cycles = main.run(param_default_path, config_default_path, parammm)
+                    y.append(cycles[0])
+                    end_time = time.time()
+                    # print("once_time is ", end_time - start_time)
+                plt.plot(dram_bw_2, y, color[color_index])
+                if (j == 1):
+                    strr = "buffer_num = " + str(buf_num)
+                    plt.ylabel(strr, color='r')
+                if (ii == 4):
+                    strr = "prefetch_num = " + str(pre_num)
+                    plt.xlabel(strr, color='r')
+                color_index = (color_index + 1) % len(color)
+
+            j += 1
+        ii += 1
+    fi.legend(label)
+    # plt.xlabel("computer_latency")
+    fi.suptitle("x_axis is dram_bw_2", fontsize=20)
+    result_default_path_2 = os.path.join(result_default_path, "deal8.png")
+    plt.savefig(result_default_path_2)
+    plt.show()
+
+def deal9():
+
+    N = 65536
+    buffer_num = [x for x in [2,5,8,13,18,23]]
+    prefetch_num = 2
+    dram_bw_2 = [400,700,1200,1500]
+    dram_bw_1 = 1200
+    mi_size = N * 60 / 1000
+    output_buffer_size = mi_size * 1
+    computer_latency = 600
+    parammm = param()
+
+    data = pd.read_csv(param_default_path)
+
+    color = ['b.-', 'g.-', 'r.-', 'c.-', 'm.-', 'y.-', 'k.-']
+    color_index = 0
+    label = []
+    plt.subplot(121)
+    for d in tqdm(dram_bw_2):
+        y = []
+        for buf_num in buffer_num:
+
+            parammm.set_params(N, buf_num, dram_bw_1, d, prefetch_num, output_buffer_size, computer_latency)
+            cycles = main.run(param_default_path, config_default_path, parammm)
+            # print(d)
+            # data.to_csv(param_default_path)
+            # with open(param_default_path, "w") as csvfile:
+            #     writer = csv.writer(csvfile)
+            #     writer.writerow(["param", "val"])
+            #     for i in range(data.shape[0]):
+            #         writer.writerow([data["param"][i], data["val"][i]])
+            # cycles = main.run(param_default_path, config_default_path)
+            y.append(cycles[0])
+        plt.plot(buffer_num, y, color[color_index])
+        strr = "dram_bw_2 " + str(d)
+        label.append(strr)
+        color_index = (color_index + 1) % len(color)
+    plt.xlabel("buf_num")
+    plt.ylabel("total_cycles")
+    plt.legend(label)
+    result_default_path_2 = os.path.join(result_default_path, "deal9.png")
+    plt.savefig(result_default_path_2)
+    plt.show()
 
 if __name__ == "__main__":
     print ("赫赫")
     #分析输出buffer和带宽与cycles的关系
-    # deal1()
+    deal1()
     # deal2()
     # deal3()
-
-    # 分析输入buffer computer_latency和带宽与cycles的关系
-    deal4()
-    deal5()
-
+    #
+    # deal4()
+    # deal5()
+    # deal6()
+    # deal7()
+    # deal8()
+    # deal9()
 
 

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import argparse
+import math
+
 import param_config_deal as pcd
 import os
-import simulator as sim
+import simulator2 as sim
 import gol
 
 # print(os.getcwd())
@@ -81,7 +83,7 @@ def run(param_default_path,config_default_path,param_custom):
     f.Outsram_size = param_custom.out_buffer_size
 
     # 设置跨文件全剧变量opt_vector
-    gol.__init(f.opt_vector, f.polylen)
+    gol.__init(f.opt_vector, f.polylen,f.optlen)
 
     # 调用执行文件
     in_sram_size_bytes = f.Insram_size
@@ -91,4 +93,7 @@ def run(param_default_path,config_default_path,param_custom):
                   out_buf_size_bytes=out_sram_size_bytes, \
                   input_buf_num=f.buf_num, param_config=f)
     simm.run()
-    return [simm.total_cycles,simm.prefetch_cycles,simm.computer_cycles,simm.write_wait_cycles,simm.write_to_writebuffer_cycles,simm.finish_cycles]
+    minimum_cycles = math.ceil(f.polylen * 60 * f.optlen * 1.0 / f.dram_bw_2)  + simm.prefetch_cycles
+    # print simm.total_cycles - minimum_cycles
+    # print (simm.total_cycles,simm.minimum_cycles+simm.prefetch_cycles+simm.computer_cycles+simm.read_stall_cycles+simm.write_to_writebuffer_cycles+simm.finish_cycles)
+    return [simm.total_cycles,simm.minimum_cycles,simm.prefetch_cycles,simm.computer_cycles,simm.read_stall_cycles,simm.write_to_writebuffer_cycles,simm.finish_cycles]

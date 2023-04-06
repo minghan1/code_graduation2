@@ -29,6 +29,7 @@ class simulator :
         self.write_to_writebuffer_cycles = 0
         self.prefetch_cycles = 0
         self.finish_cycles = 0
+        self.minimum_cycles = 0
 
         self.id = 1
 
@@ -114,27 +115,19 @@ class simulator :
             if (opera2 in self.controller.opt_sram_map.keys()):
                 flag2 = self.controller.opt_sram_map[opera2]
             if flag1 and flag2 :
-                # start_time = time.time()
                 self.total_cycles = self.run_once(operaclass, opera1, opera2, i, self.total_cycles)
-                # end_time = time.time()
-                # print("run_once time is ", end_time - start_time)
             else :
                 # print("wait ", opera1, opera2,flag1,flag2)
                 cycl = self.total_cycles
-                # start_time = time.time()
                 self.total_cycles = self.controller.wait_buffer(opera1, opera2, flag1, flag2, self.total_cycles)
-                # end_time = time.time()
-                # print("wait time is ", end_time - start_time)
                 self.write_wait_cycles += (self.total_cycles - cycl)
                 self.total_cycles = self.run_once(operaclass, opera1, opera2, i, self.total_cycles)
-            # print(i + 1, "............now_cycles.....................",self.total_cycles)
-            # end_time = time.time()
-            # print("once time is ", end_time - start_time)
+            print(i + 1, "............now_cycles.....................",self.total_cycles)
         self.finish_cycles = self.write_controller.finish()
         self.total_cycles += self.finish_cycles
         end_time = time.time()
         # print("once time is ", end_time - start_time)
-        # print ("******total_cycles*******", math.ceil(self.total_cycles + x * gol.get_polylen() * self.pa.L * 1.0 / self.controller.dram_bw))
+        print ("******total_cycles*******", math.ceil(self.total_cycles + x * gol.get_polylen() * self.pa.L * 1.0 / self.write_controller.dram_bw_2))
 
     def run_once(self, optclass, opt1 = "", opt2 = "", cnt = 0, start_cycles = 0):
         # global end_cycles

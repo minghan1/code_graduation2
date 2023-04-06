@@ -29,7 +29,7 @@ class write_buffer_controller:
         else:
             self.surplus_size += buffer_read_num
             self.read_ptr = (self.read_ptr + buffer_read_num) % self.write_buffer_size
-
+        self.last_cycles = now_cycles
     # 将data_mat写入write_buffer
     def service_memory_requests(self, data_mat_rows, start_cycls):
         #依次写入每一行
@@ -118,3 +118,17 @@ class write_buffer_controller:
     def finish(self):
         left_size = self.write_buffer_size - self.surplus_size
         return math.ceil(left_size * 1.0 / self.dram_bw_2)
+
+    #写buffer_bw个数据到write_buffer中
+    def write_data(self,start_cycles):
+        cycles = 0
+        if(self.surplus_size >= self.buffer_bw):
+            self.surplus_size -= self.buffer_bw
+            self.write_ptr = (self.write_ptr + self.buffer_bw) % self.write_buffer_size
+            cycles = 1
+        else:
+            stall_cycles = math.ceil((self.buffer_bw - self.surplus_size) * 1.0 / self.dram_bw_2)
+            self.update_write_buffer(start_cycles + stall_cycles)
+            self.surplus_size -= self.buffer_bw
+            cycles += stall_cycles + 1
+        return cycles

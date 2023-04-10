@@ -14,7 +14,7 @@ def reset_all_value(opt_v):
 def get_value(arg):
     return opt_vector[arg]
 def get_len():
-    return len(opt_vector)
+    return len(opt_vector) - optlen
 def get_all():
     return opt_vector
 def get_now_id():

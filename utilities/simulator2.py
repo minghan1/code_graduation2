@@ -83,6 +83,7 @@ class simulator :
             start_time = time.time()
             opera1 = self.opt1[i]
             opera2 = self.opt2[i]
+            opera3 = self.pa.opt3[i]
             operaclass = self.optclass[i]
 
             # start_time = time.time()
@@ -105,7 +106,7 @@ class simulator :
             #
             # print
             # print
-            # print(i + 1, " :", operaclass, " ", opera1, " ", opera2, " ", self.controller.now_exe_id,self.controller.now_id)
+            # print(i + 1, " :", operaclass, " ", opera1, " ", opera2, " ",opera3," " ,self.controller.now_exe_id,self.controller.now_id)
             flag1 = False
             flag2 = False
             if(opera2 == "xx"):
@@ -124,7 +125,7 @@ class simulator :
                     self.read_stall_cycles += (self.total_cycles - cycl)
                     self.total_cycles = self.run_once(operaclass, opera1, opera2, i, self.total_cycles)
                 else:
-                    self.total_cycles = self.run_once_2(operaclass, opera1, opera2,flag1,flag2,self.total_cycles)
+                    self.total_cycles = self.run_once_2(operaclass, opera1, opera2,flag1,flag2,self.total_cycles,i)
             # print(i + 1, "............now_cycles.....................",self.total_cycles)
         self.finish_cycles = self.write_controller.finish()
         self.total_cycles += self.finish_cycles
@@ -146,22 +147,30 @@ class simulator :
         # 4，返回开始时间加上延迟得到的结束时间，总延迟为从加速器读取操作数开始到所有输出存到输出buffer
 
         if optclass == "ADD":
-            #从输入buffer获得两个待操作数
-            self.controller.get_opt(2, [opt1, opt2], [self.id, self.id + 1])
-            self.id += 2
-            self.controller.now_exe_id = self.id
+
             #获得加法计算延迟并更新输出buffer
             computer_latency_cycles = self.sc.add_latency()
             self.write_controller.update_write_buffer(start_cycles)
             # 获取输出流矩阵
             stream_mat_output = self.sc.add_creat(self.pa.L * gol.get_polylen(), self.write_controller.buffer_bw)
             # 将输出数据流矩阵写入内存
-            write_latency = []
+            write_latency = [0,0]
             if not cnt:
                 write_latency = self.write_controller.service_memory_requests(stream_mat_output - computer_latency_cycles,
                                                                               start_cycles + computer_latency_cycles)
             else:
-                write_latency = self.write_controller.service_memory_requests(stream_mat_output,
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    write_latency[0] = self.hehe(stream_mat_output, opt_vector[gol.get_len() + cnt].id, start_cycles)
+                    write_latency[1] = 0
+                else:
+                    write_latency = self.write_controller.service_memory_requests(stream_mat_output,
                                                                                start_cycles)
 
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
@@ -172,16 +181,18 @@ class simulator :
             self.write_to_writebuffer_cycles += lat1
             # self.computer_cycles += computer_latency_cycles + lat2
             self.computer_cycles = computer_latency_cycles
+
+            # 从输入buffer获得两个待操作数
+            self.controller.get_opt(2, [opt1, opt2], [self.id, self.id + 1])
+            self.id += 2
+            self.controller.now_exe_id = self.id
+
             if not cnt:
                 return start_cycles + write_latency[0] + write_latency[1] + computer_latency_cycles
             else:
                 return start_cycles + write_latency[0] + write_latency[1]
 
         if optclass == "MUL":
-            #从输入buffer获得两个待操作数
-            self.controller.get_opt(2, [opt1, opt2], [self.id, self.id + 1])
-            self.id += 2
-            self.controller.now_exe_id = self.id
             #获得加法计算延迟并更新输出buffer
             computer_latency_cycles = self.sc.mult_latency()
             self.write_controller.update_write_buffer(start_cycles)
@@ -189,13 +200,24 @@ class simulator :
             stream_mat_output = self.sc.mult_creat(self.pa.L * gol.get_polylen(), self.write_controller.buffer_bw)
             # 将输出数据流矩阵写入内存
 
-            write_latency = []
+            write_latency = [0,0]
             if not cnt:
                 write_latency = self.write_controller.service_memory_requests(stream_mat_output - computer_latency_cycles,
                                                                                 start_cycles + computer_latency_cycles)
             else:
-                write_latency = self.write_controller.service_memory_requests(stream_mat_output,
-                                                                               start_cycles )
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    write_latency[0] = self.hehe(stream_mat_output, opt_vector[gol.get_len() + cnt].id, start_cycles)
+                    write_latency[1] = 0
+                else:
+                    write_latency = self.write_controller.service_memory_requests(stream_mat_output,
+                                                                                  start_cycles)
 
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
             if not cnt:
@@ -205,29 +227,42 @@ class simulator :
             self.write_to_writebuffer_cycles += lat1
             # self.computer_cycles += computer_latency_cycles + lat2
             self.computer_cycles = computer_latency_cycles
+
+            # 从输入buffer获得两个待操作数
+            self.controller.get_opt(2, [opt1, opt2], [self.id, self.id + 1])
+            self.id += 2
+            self.controller.now_exe_id = self.id
+
             if not cnt:
                 return start_cycles + write_latency[0] + write_latency[1] + computer_latency_cycles
             else:
                 return start_cycles + write_latency[0] + write_latency[1]
 
         if optclass == "NTT":
-            #从输入buffer获得两个待操作数
-            self.controller.get_opt(1, [opt1],[self.id])
-            self.id += 1
-            self.controller.now_exe_id = self.id
             #获得加法计算延迟并更新输出buffer
             computer_latency_cycles = self.sc.ntt_latency()
             self.write_controller.update_write_buffer(start_cycles)
             # 获取输出流矩阵
             stream_mat_output = self.sc.ntt_creat(self.pa.L * gol.get_polylen(), self.write_controller.buffer_bw)
             # 将输出数据流矩阵写入内存
-            write_latency = []
+            write_latency = [0,0]
             if not cnt:
                 write_latency = self.write_controller.service_memory_requests(stream_mat_output - computer_latency_cycles,
                                                                                 start_cycles + computer_latency_cycles)
             else:
-                write_latency = self.write_controller.service_memory_requests(stream_mat_output,
-                                                                               start_cycles)
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    write_latency[0] = self.hehe(stream_mat_output, opt_vector[gol.get_len() + cnt].id, start_cycles)
+                    write_latency[1] = 0
+                else:
+                    write_latency = self.write_controller.service_memory_requests(stream_mat_output,
+                                                                                  start_cycles)
 
             lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
             if not cnt:
@@ -237,6 +272,12 @@ class simulator :
             self.write_to_writebuffer_cycles += lat1
             # self.computer_cycles += computer_latency_cycles + lat2
             self.computer_cycles = computer_latency_cycles
+
+            # 从输入buffer获得两个待操作数
+            self.controller.get_opt(1, [opt1], [self.id])
+            self.id += 1
+            self.controller.now_exe_id = self.id
+
             if not cnt:
                 return start_cycles + write_latency[0] + write_latency[1] + computer_latency_cycles
             else:
@@ -244,7 +285,7 @@ class simulator :
 
     #在有操作数没有完全写入读buffer的情况下，
     #根据输入流矩阵逐行读取
-    def run_once_2(self,optclass, opt1,opt2,flag1,flag2,start_cycles):
+    def run_once_2(self,optclass, opt1,opt2,flag1,flag2,start_cycles,cnt):
         global t_cycles
         t_cycles = start_cycles
         self.controller.num = 0
@@ -270,7 +311,20 @@ class simulator :
                     exit(0)
                 tt = t_cycles
                 r_stall = self.read_stall_cycles
-                t_cycles = self.loop(stream_mat_output, t_cycles)
+
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    t_cycles = self.hehe2(stream_mat_output, opt_vector[gol.get_len() + cnt].id,
+                                          start_cycles)
+                else:
+                    t_cycles = self.loop(stream_mat_output, t_cycles)
+
                 lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
                 self.minimum_cycles += lat2
                 self.write_to_writebuffer_cycles += t_cycles - tt - lat2 - (self.read_stall_cycles - r_stall)
@@ -287,7 +341,21 @@ class simulator :
                 else:
                     tt = t_cycles
                     r_stall = self.read_stall_cycles
-                    t_cycles = self.loop(stream_mat_output, t_cycles)
+
+                    opt_vector = gol.get_all()
+                    flag = True
+                    if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                        flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                    if self.controller.this_opt_buffer_valid and \
+                            (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                        flag = False
+                    if (opt_vector[gol.get_len() + cnt].reused) and (
+                            self.controller.surplus_buffer_num.qsize() and flag):
+                        t_cycles = self.hehe2(stream_mat_output, opt_vector[gol.get_len() + cnt].id,
+                                              start_cycles)
+                    else:
+                        t_cycles = self.loop(stream_mat_output, t_cycles)
+
                     lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
                     self.minimum_cycles += lat2
                     self.write_to_writebuffer_cycles += t_cycles - tt - lat2 - (self.read_stall_cycles - r_stall)
@@ -322,7 +390,20 @@ class simulator :
                     exit(0)
                 tt = t_cycles
                 r_stall = self.read_stall_cycles
-                t_cycles = self.loop(stream_mat_output, t_cycles)
+
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    t_cycles = self.hehe2(stream_mat_output, opt_vector[gol.get_len() + cnt].id,
+                                          start_cycles)
+                else:
+                    t_cycles = self.loop(stream_mat_output, t_cycles)
+
                 lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
                 self.minimum_cycles += lat2
                 self.write_to_writebuffer_cycles += t_cycles - tt - lat2 - (self.read_stall_cycles - r_stall)
@@ -338,7 +419,21 @@ class simulator :
                 else:
                     tt = t_cycles
                     r_stall = self.read_stall_cycles
-                    t_cycles = self.loop(stream_mat_output, t_cycles)
+
+                    opt_vector = gol.get_all()
+                    flag = True
+                    if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                        flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                    if self.controller.this_opt_buffer_valid and \
+                            (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                        flag = False
+                    if (opt_vector[gol.get_len() + cnt].reused) and (
+                            self.controller.surplus_buffer_num.qsize() and flag):
+                        t_cycles = self.hehe2(stream_mat_output, opt_vector[gol.get_len() + cnt].id,
+                                              start_cycles)
+                    else:
+                        t_cycles = self.loop(stream_mat_output, t_cycles)
+
                     lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
                     self.minimum_cycles += lat2
                     self.write_to_writebuffer_cycles += t_cycles - tt - lat2 - (self.read_stall_cycles - r_stall)
@@ -366,7 +461,20 @@ class simulator :
             else:
                 tt = t_cycles
                 r_stall = self.read_stall_cycles
-                t_cycles = self.loop(stream_mat_output, t_cycles)
+
+                opt_vector = gol.get_all()
+                flag = True
+                if opt_vector[gol.get_len() + cnt].name in self.controller.opt_sram_map.keys():
+                    flag = not self.controller.opt_sram_map[opt_vector[gol.get_len() + cnt].name]
+                if self.controller.this_opt_buffer_valid and \
+                    (opt_vector[gol.get_len() + cnt].name == opt_vector[self.controller.now_id - 1].name):
+                    flag = False
+                if (opt_vector[gol.get_len() + cnt].reused) and (self.controller.surplus_buffer_num.qsize() and flag):
+                    t_cycles = self.hehe2(stream_mat_output, opt_vector[gol.get_len() + cnt].id,
+                                          start_cycles)
+                else:
+                    t_cycles = self.loop(stream_mat_output, t_cycles)
+
                 lat2 = math.ceil(self.pa.L * self.pa.polylen * 1.0 / self.write_controller.buffer_bw)
                 self.minimum_cycles += lat2
                 self.write_to_writebuffer_cycles += t_cycles - tt - lat2 - (self.read_stall_cycles - r_stall)
@@ -379,14 +487,57 @@ class simulator :
         return t_cycles
     def loop(self,stream_mat_output, cycles):
         t_cycles = cycles
+
+        #读写可以同时进行
         for data in range(stream_mat_output):
             read_cycles = self.controller.get_data()
             t_cycles += read_cycles
-            self.read_stall_cycles += read_cycles - 1
+            self.read_stall_cycles += read_cycles
             write_cycles = self.write_controller.write_data(t_cycles)
             t_cycles += write_cycles
             self.write_controller.update_write_buffer(t_cycles)
 
             self.controller.last_size += (read_cycles + write_cycles ) * self.controller.dram_bw_1
             self.controller.last_cycles = t_cycles
+        return t_cycles
+
+    def hehe(self,stream,id,cycles):
+        t_cycles = cycles
+        # print("hehe")
+        #读写不能同时进行
+        for i in range(stream):
+            t_cycles += 1 #读
+            write_cycles = self.write_controller.write_data(t_cycles) #写
+            t_cycles += write_cycles
+            self.write_controller.update_write_buffer(t_cycles)
+
+        opt_vector = gol.get_all()
+        self.controller.reused_que.appendleft(id)
+        buffer_index = self.controller.surplus_buffer_num.get()
+        self.controller.buffer_arr[buffer_index - 1] = id
+        self.controller.opt_sram_map[opt_vector[id - 1].name] = buffer_index
+
+        return t_cycles - cycles
+
+    def hehe2(self,stream_mat_output, id, cycles):
+        t_cycles = cycles
+        # print("hehe2")
+
+        #读写不可以同时进行
+        for data in range(stream_mat_output):
+            read_cycles = self.controller.get_data()
+            t_cycles += read_cycles + 1
+            self.read_stall_cycles += read_cycles
+            write_cycles = self.write_controller.write_data(t_cycles)
+            t_cycles += write_cycles
+            self.write_controller.update_write_buffer(t_cycles)
+
+            self.controller.last_size += (read_cycles + write_cycles ) * self.controller.dram_bw_1
+            self.controller.last_cycles = t_cycles
+
+        opt_vector = gol.get_all()
+        self.controller.reused_que.appendleft(id)
+        buffer_index = self.controller.surplus_buffer_num.get()
+        self.controller.buffer_arr[buffer_index - 1] = id
+        self.controller.opt_sram_map[opt_vector[id - 1].name] = buffer_index
         return t_cycles

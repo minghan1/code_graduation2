@@ -25,9 +25,11 @@ class ParamConfig :
         self.optlen = 0 #操作个数
         self.opt1 = [] #操作数1名称
         self.opt2 = [] #操作数2名称
+        self.opt3 = []
         self.opt1size = [] #操作数1的残差长度
         self.opt2size = [] #操作数2的残差长度
         self.opt_vector = []
+        self.opt_vector_2 = []
         self.opt_map = {}
         #
         #操作数类型optclass
@@ -45,6 +47,7 @@ class ParamConfig :
         self.optclass = list(data["opt"])
         self.opt1 = (list)(data["opt1"])
         self.opt2 = (list)(data["opt2"])
+        self.opt3 = (list)(data["opt3"])
         # self.opt1size = (list)(data["opt1size"])
         # self.opt2size = (list)(data["opt2size"])
 
@@ -52,6 +55,8 @@ class ParamConfig :
         cnt2 = 1 #不算重复
 
         #获得一个操作数数组
+        index = []
+        c = 0
         for i in range(self.optlen):
             t1 = mem_element()
             t2 = mem_element()
@@ -68,6 +73,10 @@ class ParamConfig :
                 if (not (opt1 in self.opt_map.keys())):
                     self.opt_map[opt1] = cnt2
                     cnt2 += 1
+
+                c += 1
+                if c < cnt:
+                    index.append(c)
 
             else :
                 t1.id = cnt
@@ -89,6 +98,32 @@ class ParamConfig :
                 if (not (opt2 in self.opt_map.keys())):
                     self.opt_map[opt2] = cnt2
                     cnt2 += 1
+
+                c += 2
+                if c < cnt:
+                    index.append(c)
+
+        for i in range(self.optlen):
+            t3 = mem_element()
+            opt3 = self.opt3[i]
+
+            t3.id = cnt
+            t3.name = opt3
+            t3.residueL = self.L
+            cnt += 1
+
+            self.opt_vector_2.append(t3)
+
+        for i in range(self.optlen):
+            j = index[i]
+            while(j < len(self.opt_vector)):
+                # print i ,j
+                if (self.opt_vector[j].name == self.opt_vector_2[i].name):
+                    self.opt_vector_2[i].reused = True
+                    # self.opt_vector_2[i].reused = False
+
+                j += 1
+
         global tt
         tt = {}
         #对每个操作数的reused标志赋值，0表示后面不会重用，1表示后面会重用
@@ -99,6 +134,10 @@ class ParamConfig :
                 self.opt_vector[i].reused = False
                 tt[self.opt_vector[i].name] = 1
 
+        for i in self.opt_vector_2:
+            self.opt_vector.append(i)
+        # for i in self.opt_vector:
+        #     print i.id , i.name , i.reused
         #######################
         #--DEBUG
         # for i in self.opt_vector:

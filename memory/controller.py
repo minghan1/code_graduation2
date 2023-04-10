@@ -58,7 +58,7 @@ class controller:
             if (self.opt_vector[j].name in self.opt_sram_map.keys()):
                 j += 1
                 continue
-            if(j >= len(self.opt_vector)):
+            if(j >= gol.get_len()):
                 break
             self.opt_vector[j].insram = True
             # self.buffer_arr.append(self.opt_vector[j].id)
@@ -231,7 +231,7 @@ class controller:
             if (self.opt_sram_map[self.opt_vector[j - 1].name] == 0):
                 break
             j += 1
-            if (j > len(self.opt_vector)):
+            if (j > gol.get_len()):
                 break
 
         self.now_id = j
@@ -407,10 +407,10 @@ class controller:
         cycles = 0
         left_num = self.last_size - self.num
         if(left_num > self.buffer_bw):
-            cycles += 1
+            # cycles += 1
             self.num += self.buffer_bw
         else:
             need_cycles = math.ceil((self.buffer_bw - left_num) * 1.0 / self.dram_bw_1)
-            cycles += need_cycles + 1
+            cycles += need_cycles
             self.num += self.buffer_bw
         return  cycles

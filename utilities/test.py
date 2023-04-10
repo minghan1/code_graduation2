@@ -55,10 +55,10 @@ def deal1():
     N = 65536
     buffer_num = 2
     prefetch_num = 2
-    dram_bw_2 = [x for x in range(700, 2500, 160)]
+    dram_bw_2 = [x for x in range(200, 1000, 100)]
     dram_bw_1 = 1200
     mi_size = N * 60 / 1000
-    output_buffer_size = [x * mi_size for x in [0.1, 0.6, 1, 3, 8, 15,30]]
+    output_buffer_size = [x*3 for x in [1,90,400,1000,10000]]
     computer_latency = 600
     parammm = param()
 
@@ -76,7 +76,7 @@ def deal1():
         y = []
         for d in dram_bw_2:
             data["val"][8] = d
-            parammm.set_params(N, buffer_num, dram_bw_1, d, prefetch_num, out_size, computer_latency)
+            parammm.set_params(N, buffer_num, 1200-d, d, prefetch_num, out_size, computer_latency)
             cycles = main.run(param_default_path, config_default_path, parammm)
             # print(d)
             # data.to_csv(param_default_path)
@@ -96,39 +96,39 @@ def deal1():
     # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
     plt.legend(label)
 
-    dram_bw_2 = [x for x in range(600, 2500, 160)]
-    plt.subplot(122)
-    for out_size in tqdm(output_buffer_size):
-        data["val"][4] = out_size
-        y = []
-        for d in dram_bw_2:
-            data["val"][8] = d
-            # print(d)
-            # data.to_csv(param_default_path)
-            parammm.set_params(N, buffer_num, dram_bw_1, d, prefetch_num, out_size, computer_latency)
-            cycles = main.run(param_default_path, config_default_path,parammm)
-            y.append(cycles[0] - cycles[5])
-        plt.plot(dram_bw_2, y, color[color_index])
-        strr = "outbuffersize " + str(out_size) + "k"
-        label.append(strr)
-        color_index = (color_index + 1) % len(color)
-    plt.xlabel("dram_bw")
-    plt.ylabel("total_cycles")
-    # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
-    plt.legend(label)
+    # dram_bw_2 = [x for x in range(600, 2500, 160)]
+    # plt.subplot(122)
+    # for out_size in tqdm(output_buffer_size):
+    #     data["val"][4] = out_size
+    #     y = []
+    #     for d in dram_bw_2:
+    #         data["val"][8] = d
+    #         # print(d)
+    #         # data.to_csv(param_default_path)
+    #         parammm.set_params(N, buffer_num, dram_bw_1, d, prefetch_num, out_size, computer_latency)
+    #         cycles = main.run(param_default_path, config_default_path,parammm)
+    #         y.append(cycles[0] - cycles[5])
+    #     plt.plot(dram_bw_2, y, color[color_index])
+    #     strr = "outbuffersize " + str(out_size) + "k"
+    #     label.append(strr)
+    #     color_index = (color_index + 1) % len(color)
+    # plt.xlabel("dram_bw")
+    # plt.ylabel("total_cycles")
+    # # plt.text(x=1000,y=150000,s="out_buffer_size = 10")
+    # plt.legend(label)
     result_default_path_2 = os.path.join(result_default_path, "deal1.png")
-    plt.savefig(result_default_path_2)
+    plt.savefig(result_default_path_2,dpi = 600, bbox_inches='tight')
     plt.show()
 
 #分析total cycles中的各个延迟组成与输出buffer大小的关系
 def deal2():
     N = 65536
-    buffer_num = 2
-    prefetch_num = 2
-    dram_bw_1 = 1200
-    dram_bw_2 = 1000
+    buffer_num = 8
+    prefetch_num = 8
+    dram_bw_1 = 600
+    dram_bw_2 = 500
     mi_size = N * 60 / 1000
-    output_buffer_size = [x * mi_size for x in [0.6, 1, 3, 4, 5, 8, 10]]
+    output_buffer_size = [x*3 for x in [10,100,1000,5000,10000]]
     # for ii in output_buffer_size:
     #     print ii * 1000
     parammm = param()
@@ -159,7 +159,7 @@ def deal2():
         #         writer.writerow([data["param"][i], data["val"][i]])
         cycles = main.run(param_default_path, config_default_path,parammm)
         yy = cycles
-        yy[1] = N * 60 * gol.get_optlen() / dram_bw_2 + yy[2]
+        # yy[1] = N * 60 * gol.get_optlen() / dram_bw_2 + yy[2]
         for m in range(len(x)):
             x[m] = x[m] + width * 8
         t = plt.bar(x = x, height = yy, width = width,color=color)
@@ -170,16 +170,16 @@ def deal2():
         x[i] = i * width * 8 + 6 * width
     plt.xticks(x + width * 3, com_lat_str)
     result_default_path_2 = os.path.join(result_default_path, "deal2.png")
-    plt.savefig(result_default_path_2)
+    plt.savefig(result_default_path_2,dpi = 600, bbox_inches='tight')
     plt.show()
 
 #分析total cycles中的各个延迟组成与输出buffer到dram带宽的关系
 def deal3():
     N = 65536
-    buffer_num = 9
-    prefetch_num = 9
+    buffer_num = 8
+    prefetch_num = 8
     dram_bw_1 = 1200
-    dram_bw_2 = [x for x in range(300, 2200, 160)]
+    dram_bw_2 = [x for x in range(100, 1200, 100)]
     output_buffer_size = 1200
     # for ii in output_buffer_size:
     #     print ii * 1000
@@ -205,7 +205,7 @@ def deal3():
     i = 0
     for dram_bw in dram_bw_2:
         data["val"][8] = dram_bw
-        parammm.set_params(N, buffer_num, dram_bw_1, dram_bw, prefetch_num, output_buffer_size,
+        parammm.set_params(N, buffer_num, 1200 - dram_bw, dram_bw, prefetch_num, output_buffer_size,
                            conputer_latency=computer_latency)
         cycles = main.run(param_default_path, config_default_path, parammm)
         # with open(param_default_path, "w") as csvfile:
@@ -225,7 +225,7 @@ def deal3():
         x[i] = i * width * 8 + 6 * width
     plt.xticks(x + width * 3, com_lat_str)
     result_default_path_2 = os.path.join(result_default_path, "deal3.png")
-    plt.savefig(result_default_path_2)
+    plt.savefig(result_default_path_2,dpi = 600, bbox_inches='tight')
     plt.show()
 
 #三个片上buffer变量以及计算延迟与total cycles的关系
@@ -353,7 +353,7 @@ def deal6():
     buffer_num = np.array([2, 5, 9, 15])
     prefetch_num = np.array([[2], [2, 4], [2, 4, 9], [2, 5, 9, 15]])
 
-    dram_bw_2 = [x for x in range(600, 1500, 160)]
+    dram_bw_2 = [x for x in range(100, 1200, 100)]
     dram_bw_1 = 1200
     mi_size = N * 60 / 1000
     output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.8,1,3,8]]
@@ -386,7 +386,7 @@ def deal6():
 
                 for dram_2 in dram_bw_2:
                     start_time = time.time()
-                    parammm.set_params(N, buf_num, dram_bw_1, dram_2, pre_num, out_size, computer_latency)
+                    parammm.set_params(N, buf_num, 1200-dram_2, dram_2, pre_num, out_size, computer_latency)
                     # with open(param_default_path, "w") as csvfile:
                     #     writer = csv.writer(csvfile)
                     #     writer.writerow(["param", "val"])
@@ -419,7 +419,7 @@ def deal7():
     N = 65536
     buffer_num = [x for x in [2,5,8,13,18,23]]
     prefetch_num = 2
-    dram_bw_2 = [400,700,1200,1500]
+    dram_bw_2 = [x for x in range(100, 1200, 100)]
     dram_bw_1 = 1200
     mi_size = N * 60 / 1000
     output_buffer_size = mi_size * 1
@@ -436,7 +436,7 @@ def deal7():
         y = []
         for buf_num in buffer_num:
 
-            parammm.set_params(N, buf_num, dram_bw_1, d, prefetch_num, output_buffer_size, computer_latency)
+            parammm.set_params(N, buf_num, 1200- d, d, prefetch_num, output_buffer_size, computer_latency)
             cycles = main.run(param_default_path, config_default_path, parammm)
             # print(d)
             # data.to_csv(param_default_path)
@@ -464,10 +464,10 @@ def deal8():
     buffer_num = np.array([2, 5, 9, 15])
     prefetch_num = np.array([[2], [2, 4], [2, 4, 9], [2, 5, 9, 15]])
 
-    dram_bw_2 = [x for x in range(600, 1500, 160)]
+    dram_bw_2 = [x for x in range(200, 1000, 100)]
     dram_bw_1 = 1200
     mi_size = N * 60 / 1000
-    output_buffer_size = [x * mi_size for x in [0.1, 0.3, 0.8,1,3,8]]
+    output_buffer_size = [x*3 for x in [1,90,400,1000,10000]]
     computer_latency = 50
 
     parammm = param()
@@ -496,8 +496,9 @@ def deal8():
                 y = []
 
                 for dram_2 in dram_bw_2:
+                    # print buf_num, pre_num, out_size, dram_2
                     start_time = time.time()
-                    parammm.set_params(N, buf_num, dram_bw_1, dram_2, pre_num, out_size, computer_latency)
+                    parammm.set_params(N, buf_num, 1200 - dram_2, dram_2, pre_num, out_size, computer_latency)
                     # with open(param_default_path, "w") as csvfile:
                     #     writer = csv.writer(csvfile)
                     #     writer.writerow(["param", "val"])
@@ -522,7 +523,7 @@ def deal8():
     # plt.xlabel("computer_latency")
     fi.suptitle("x_axis is dram_bw_2", fontsize=20)
     result_default_path_2 = os.path.join(result_default_path, "deal8.png")
-    plt.savefig(result_default_path_2)
+    plt.savefig(result_default_path_2,dpi = 600, bbox_inches='tight')
     plt.show()
 
 def deal9():
@@ -530,10 +531,10 @@ def deal9():
     N = 65536
     buffer_num = [x for x in [2,5,8,13,18,23]]
     prefetch_num = 2
-    dram_bw_2 = [400,700,1200,1500]
+    dram_bw_2 = [x for x in range(100, 800, 100)]
     dram_bw_1 = 1200
     mi_size = N * 60 / 1000
-    output_buffer_size = mi_size * 1
+    output_buffer_size = 1200
     computer_latency = 600
     parammm = param()
 
@@ -547,7 +548,7 @@ def deal9():
         y = []
         for buf_num in buffer_num:
 
-            parammm.set_params(N, buf_num, dram_bw_1, d, prefetch_num, output_buffer_size, computer_latency)
+            parammm.set_params(N, buf_num, 1200 - d, d, prefetch_num, output_buffer_size, computer_latency)
             cycles = main.run(param_default_path, config_default_path, parammm)
             # print(d)
             # data.to_csv(param_default_path)
@@ -565,15 +566,15 @@ def deal9():
     plt.xlabel("buf_num")
     plt.ylabel("total_cycles")
     plt.legend(label)
-    result_default_path_2 = os.path.join(result_default_path, "deal9.png")
-    plt.savefig(result_default_path_2)
+    result_default_path_2 = os.path.join(result_default_path, "deal9.pdf")
+    plt.savefig(result_default_path_2,dpi = 600, bbox_inches='tight')
     plt.show()
 
 if __name__ == "__main__":
     print ("赫赫")
     #分析输出buffer和带宽与cycles的关系
-    deal1()
-    # deal2()
+    # deal1()
+    deal2()
     # deal3()
     #
     # deal4()

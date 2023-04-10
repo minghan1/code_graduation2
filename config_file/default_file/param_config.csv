@@ -3,9 +3,9 @@ N,65536
 L,50
 I,60
 ISRAMSIZE,64
-OSRAMSIZE,3940
-buf_num,2
-dram_bw_1,1600
+OSRAMSIZE,300
+buf_num,15
+dram_bw_1,800
 prefetch_buf_num,2
-dram_bw_2,1200
+dram_bw_2,400
 computer_latency,20

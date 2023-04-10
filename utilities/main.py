@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+
+# 简化以下三个地方（对总周期结果影响不大，但是很大减小了实现复杂读）
+# 1，不考虑在一个操作执行完成之后更新输入buffer可能遇到的这种情况：
+#   下一个要更新的操作的操作数要存储在这个操作的操作数所在buffer，但是在存储的过程中输入的操作数写入的速度比当前操作数读出的快
+# 2，在当前操作的目的操作数需要存储到输入buffer中留作重用时，如果输入buffer中没有空闲buffer，则不留这个目的操作数重用，直接输出到输出buffer中去
+# 3，输出数据如果需要重用，就同时发送到输入和输出buffer
+
 import argparse
 import math
 
@@ -39,7 +46,7 @@ if __name__ == '__main__':
 
 
     #设置跨文件全剧变量opt_vector
-    gol.__init(f.opt_vector, f.polylen)
+    gol.__init(f.opt_vector, f.polylen,len(f.opt_vector_2))
 
     #调用执行文件
     in_sram_size_bytes = f.Insram_size
@@ -84,7 +91,6 @@ def run(param_default_path,config_default_path,param_custom):
 
     # 设置跨文件全剧变量opt_vector
     gol.__init(f.opt_vector, f.polylen,f.optlen)
-
     # 调用执行文件
     in_sram_size_bytes = f.Insram_size
     out_sram_size_bytes = f.Outsram_size

@@ -6,10 +6,11 @@
 import  math
 import time
 import param_config_deal as pcd
-import stream_creat as sc
-import write_buffer_controller as wbc
+
+import computer.stream_creat as sc
+import memory.write_buffer_controller as wbc
 import gol
-import controller as contr
+from memory import controller as contr
 class simulator :
     def __init__(self):
         self.optlen = 0 # 同态操作次数
